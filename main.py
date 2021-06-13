@@ -7,7 +7,63 @@ import win32api as wapi
 import win32gui as wgui
 import win32process as wproc
 
+
+# New GUI
+import curses
+import traceback
+import datetime
+
 version = 'b0.6.13'
+
+
+class ProgressAnimation:
+    counter = 0
+    ANIM_LENGTH = 11
+
+    # CHAR
+    OPENING_CHAR = '['
+    CLOSING_CHAR = ']'
+    FULL_UNICODE_CHAR = '█'
+    HALF_UNICODE_CHAR = '▒'
+
+    # COLORS
+    COLOR_GREEN = 0xA
+    COLOR_BLUE = 0xB
+    COLOR_YELLOW = 0xE
+    COLOR_WHITE = 0x7
+    COLOR_GRAY = 0x8
+    COLOR_FULLWHITE = 0xF
+
+    global open_bracket_progress_win
+    global close_bracket_progress_win
+    global body_progress_win
+
+    def __init__(self, xcoord, ycoord):
+        curses.init_pair(1, self.COLOR_GRAY, curses.COLOR_BLACK)  # darkest non-black color on black bg
+        curses.init_pair(2, self.COLOR_FULLWHITE, curses.COLOR_BLACK)  # full white on black bg
+        curses.init_pair(3, self.COLOR_WHITE, self.COLOR_GRAY)  # full white on black bg
+        curses.init_pair(4, self.COLOR_GREEN, curses.COLOR_BLACK)  # green on black bg
+        curses.init_pair(5, self.COLOR_BLUE, curses.COLOR_BLUE)  # blue on black bg, used to highlight max
+        curses.init_pair(6, self.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(7, curses.COLOR_RED, curses.COLOR_BLACK)
+        self.open_bracket_progress_win = curses.newwin(2, len(self.OPENING_CHAR), ycoord, xcoord)
+        self.body_progress_win = curses.newwin(2, self.ANIM_LENGTH, ycoord, xcoord + len(self.OPENING_CHAR))
+        self.close_bracket_progress_win = curses.newwin(2, len(self.CLOSING_CHAR), ycoord, xcoord
+                                                        + self.ANIM_LENGTH + len(self.OPENING_CHAR))
+
+        self.open_bracket_progress_win.addstr('[')
+
+        self.body_progress_win.addstr(self.FULL_UNICODE_CHAR * self.ANIM_LENGTH, curses.color_pair(5))
+
+        self.close_bracket_progress_win.addstr(']')
+
+    def refresh(self):
+        self.open_bracket_progress_win.touchwin()
+        self.open_bracket_progress_win.refresh()
+        self.close_bracket_progress_win.touchwin()
+        self.close_bracket_progress_win.refresh()
+        self.body_progress_win.touchwin()
+        self.body_progress_win.refresh()
 
 
 def enum_windows_proc(wnd, param):
@@ -177,6 +233,25 @@ def main():
 
     app_initialize()
 
+    # New GUI
+
+    stdscr = curses.initscr()  # initialize curses screen
+    curses.start_color()
+
+    curses.noecho()  # turn off auto echoing of keypress on to screen
+    curses.cbreak()  # enter break mode where pressing Enter key
+    curses.curs_set(0)
+    #  after keystroke is not required for it to register
+    stdscr.keypad(1)  # enable special Key values such as curses.KEY_LEFT etc
+    progress_animation = ProgressAnimation(55, 2)
+    # -- Perform an action with Screen --
+    stdscr.border(0)
+    stdscr.addstr(5, 5, 'Hello from Curses!', curses.A_BOLD)
+    stdscr.addstr(6, 5, 'Press q to close this screen', curses.A_NORMAL)
+
+
+
+
     while True:
         global globalI
         global maxGlobalI
@@ -219,6 +294,12 @@ def main():
             from_paused = None
             if not spotify_muted:
                 fade_out()
+        # New GUI
+        stdscr.addstr(8, 5, 'Time: ', curses.A_NORMAL)
+        stdscr.addstr(9, 6, 'HELLO WORLD ')
+        stdscr.refresh()
+        progress_animation.refresh()
+
 
 
 def app_initialize():
@@ -237,6 +318,7 @@ def app_initialize():
 def fade_out():
     global spotify_muted
     spotify_muted = True
+    audio_controller.__init__(spotify_app_exe)
     # audio_controller.decrease_volume(0.3)
     # time.sleep(.2)
     # audio_controller.decrease_volume(0.11)
