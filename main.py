@@ -14,7 +14,7 @@ import traceback
 import datetime
 
 # Constant
-VERSION = 'b0.6.13'
+VERSION = 'b0.6.18'
 WINDOW_TITLE = 'Spotify Ads Ratio Counter'
 WINDOW_AUTHOR = ' by engrbugs'
 
@@ -274,6 +274,14 @@ def main():
     tempx = width - len(VERSION) - 1
     stdscr.addstr(tempy, tempx, VERSION)
 
+    tempy = 4  # row of Spotify Window Text:
+    tempx = 5
+    stdscr.addstr(tempy, tempx, 'SPOTIFY window text:', curses.A_BOLD)
+
+    tempy = 5  # row of Spotify Window Text:
+    tempx = 10
+    textbox_current_window_text = curses.newwin(2, width - (2 * tempx), tempy, tempx)
+    #stdscr.addstr(tempy, tempx, 'SPOTIFY window text:', curses.A_BOLD)
 
     while True:
         time.sleep(SLEEP_TIME_SONG)
@@ -312,10 +320,12 @@ def main():
             if not spotify_muted:
                 fade_out()
         # New Curses GUI
-        ti = str((datetime.datetime.now().time()))
-
-        stdscr.addstr(8, 5, 'Time: ' + str(progress_animation.counter), curses.A_NORMAL)
-        stdscr.addstr(9, 6, 'HELLO WORLD ')
+        textbox_current_window_text.clear()
+        if title == '':
+            title = SPOTIFY_APP_EXE + ' is not found.'
+        textbox_current_window_text.addstr(title, curses.A_NORMAL)
+        textbox_current_window_text.touchwin()
+        textbox_current_window_text.refresh()
         stdscr.refresh()
         progress_animation.next()
         progress_animation.refresh()
