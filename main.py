@@ -15,10 +15,22 @@ import datetime
 
 version = 'b0.6.13'
 
+# variable
+spotify_app_exe = 'Spotify.exe'
+SLEEP_TIME_SONG = 1  # sec
+SLEEP_TIME_ADVERTISEMENT = 1
+spotify_muted = None
+globalI = -1
+maxGlobalI = 9
+start_count_down = 3
+paused_text = 'Spotify Free'
+from_paused = True
 
 class ProgressAnimation:
     counter = 0
     ANIM_LENGTH = 11
+    X_COORD = 0
+    Y_COORD = 0
 
     # CHAR
     OPENING_CHAR = '['
@@ -38,7 +50,11 @@ class ProgressAnimation:
     global close_bracket_progress_win
     global body_progress_win
 
+
+
     def __init__(self, xcoord, ycoord):
+        # self.X_COORD = xcoord
+        # self.Y_COORD = ycoord
         curses.init_pair(1, self.COLOR_GRAY, curses.COLOR_BLACK)  # darkest non-black color on black bg
         curses.init_pair(2, self.COLOR_FULLWHITE, curses.COLOR_BLACK)  # full white on black bg
         curses.init_pair(3, self.COLOR_WHITE, self.COLOR_GRAY)  # full white on black bg
@@ -50,11 +66,8 @@ class ProgressAnimation:
         self.body_progress_win = curses.newwin(2, self.ANIM_LENGTH, ycoord, xcoord + len(self.OPENING_CHAR))
         self.close_bracket_progress_win = curses.newwin(2, len(self.CLOSING_CHAR), ycoord, xcoord
                                                         + self.ANIM_LENGTH + len(self.OPENING_CHAR))
-
         self.open_bracket_progress_win.addstr('[')
-
-        self.body_progress_win.addstr(self.FULL_UNICODE_CHAR * self.ANIM_LENGTH, curses.color_pair(5))
-
+        self.body_progress_win.addstr(self.FULL_UNICODE_CHAR * self.ANIM_LENGTH, curses.color_pair(1))
         self.close_bracket_progress_win.addstr(']')
 
     def refresh(self):
@@ -64,6 +77,31 @@ class ProgressAnimation:
         self.close_bracket_progress_win.refresh()
         self.body_progress_win.touchwin()
         self.body_progress_win.refresh()
+
+    def next(self):
+        # Do not forget to call refresh after you call this func.
+
+        self.body_progress_win.clear()
+
+        self.counter += 1
+        body_str = (self.FULL_UNICODE_CHAR * (abs(self.counter) - 1)) + self.HALF_UNICODE_CHAR + \
+                   (self.FULL_UNICODE_CHAR * (self.ANIM_LENGTH - abs(self.counter)))
+        print(body_str)
+        self.body_progress_win.addstr(body_str, curses.color_pair(1))
+
+        # Paint color
+        self.body_progress_win.chgat(0, abs(self.counter) - 1, 1, curses.color_pair(5))
+        # Shadow
+        # if (abs(self.counter) - 1 + 1) <= self.ANIM_LENGTH - 1:
+        #     self.body_progress_win.chgat(0, abs(self.counter) - 1 + 1, 1, curses.color_pair(2))
+
+        if self.counter == self.ANIM_LENGTH:
+            self.counter *= -1
+        elif self.counter == -2:
+            self.counter = 0
+
+
+
 
 
 def enum_windows_proc(wnd, param):
@@ -133,15 +171,6 @@ def check_window_text(*args):
     return ''
 
 
-# variable
-spotify_app_exe = 'Spotify.exe'
-sleep_time = 1  # sec
-spotify_muted = None
-globalI = -1
-maxGlobalI = 9
-start_count_down = 3
-paused_text = 'Spotify Free'
-from_paused = True
 
 
 print(f'Spotify Ads Ratio Counter is here by engrbugs {version}')
@@ -219,17 +248,17 @@ class AudioController(object):
                     print('Volume raised to', self.volume)  # debug
 
 
-audio_controller = AudioController(spotify_app_exe)
-
-
 def main():
+
     global from_paused
     global audio_controller
     global spotify_muted
+    global spotify_app_exe
 
-    for i in range(start_count_down):
-        print('Spotify Ad Muter will initialize in ' + str(start_count_down - i) + '...')
-        time.sleep(1)
+    audio_controller = AudioController(spotify_app_exe)
+    # for i in range(start_count_down):
+    #     print('Spotify Ad Muter will initialize in ' + str(start_count_down - i) + '...')
+    #     time.sleep(1)
 
     app_initialize()
 
@@ -243,7 +272,7 @@ def main():
     curses.curs_set(0)
     #  after keystroke is not required for it to register
     stdscr.keypad(1)  # enable special Key values such as curses.KEY_LEFT etc
-    progress_animation = ProgressAnimation(55, 2)
+    progress_animation = ProgressAnimation(5, 2)
     # -- Perform an action with Screen --
     stdscr.border(0)
     stdscr.addstr(5, 5, 'Hello from Curses!', curses.A_BOLD)
@@ -256,7 +285,7 @@ def main():
         global globalI
         global maxGlobalI
         globalI += 1
-        time.sleep(sleep_time)
+        time.sleep(SLEEP_TIME_SONG)
 
         title = check_window_text(spotify_app_exe)  # New
 
@@ -295,9 +324,12 @@ def main():
             if not spotify_muted:
                 fade_out()
         # New GUI
-        stdscr.addstr(8, 5, 'Time: ', curses.A_NORMAL)
+        ti = str((datetime.datetime.now().time()))
+
+        stdscr.addstr(8, 5, 'Time: ' + str(progress_animation.counter), curses.A_NORMAL)
         stdscr.addstr(9, 6, 'HELLO WORLD ')
         stdscr.refresh()
+        progress_animation.next()
         progress_animation.refresh()
 
 
