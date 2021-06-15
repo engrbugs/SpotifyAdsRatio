@@ -27,6 +27,7 @@ START_COUNT_DOWN = 3
 # Variable
 spotify_muted = None
 from_paused = True
+volume_now = 1.0
 
 
 class ProgressAnimation:
@@ -175,6 +176,8 @@ class AudioController(object):
             interface = session.SimpleAudioVolume
             if session.Process and session.Process.name() == self.process_name:
                 interface.SetMute(1, None)
+                global volume_now
+                volume_now = 0.0
                 print(self.process_name, 'has been muted.')  # debug
 
     def unmute(self):
@@ -183,6 +186,8 @@ class AudioController(object):
             interface = session.SimpleAudioVolume
             if session.Process and session.Process.name() == self.process_name:
                 interface.SetMute(0, None)
+                global volume_now
+                volume_now = 1.0
                 print(self.process_name, 'has been unmuted.')  # debug
 
     def process_volume(self):
@@ -190,7 +195,8 @@ class AudioController(object):
         for session in sessions:
             interface = session.SimpleAudioVolume
             if session.Process and session.Process.name() == self.process_name:
-                print('Volume:', interface.GetMasterVolume())  # debug
+                global volume_now
+                volume_now = interface.GetMasterVolume()
                 return interface.GetMasterVolume()
 
     def set_volume(self, decibels):
@@ -201,7 +207,8 @@ class AudioController(object):
                 # only set volume in the range 0.0 to 1.0
                 self.volume = min(1.0, max(0.0, decibels))
                 interface.SetMasterVolume(self.volume, None)
-                print('Volume set to', self.volume)  # debug
+                global volume_now
+                volume_now = self.volume
 
     def decrease_volume(self, decibels):
         sessions = AudioUtilities.GetAllSessions()
@@ -212,12 +219,14 @@ class AudioController(object):
                     # 0.0 is the min value, reduce by decibels
                     self.volume = max(0.0, self.volume - decibels)
                     interface.SetMasterVolume(self.volume, None)
-                    print('Volume reduced to', self.volume)  # debug
+                    global volume_now
+                    volume_now = self.volume
                 except:
                     # 0.0 is the min value, reduce by decibels
                     self.volume = .7
                     interface.SetMasterVolume(self.volume, None)
-                    print('Volume reduced to', self.volume)  # debug
+                    # global volume_now
+                    volume_now = self.volume
 
     def increase_volume(self, decibels):
         sessions = AudioUtilities.GetAllSessions()
@@ -228,12 +237,14 @@ class AudioController(object):
                     # 1.0 is the max value, raise by decibels
                     self.volume = min(1.0, self.volume + decibels)
                     interface.SetMasterVolume(self.volume, None)
-                    print('Volume raised to', self.volume)  # debug
+                    global volume_now
+                    volume_now = self.volume
                 except:
                     # 1.0 is the max value, raise by decibels
                     self.volume = 1
                     interface.SetMasterVolume(self.volume, None)
-                    print('Volume raised to', self.volume)  # debug
+                    # global volume_now
+                    volume_now = self.volume
 
 
 def main():
@@ -241,8 +252,6 @@ def main():
     global audio_controller
     global spotify_muted
     global SPOTIFY_APP_EXE
-
-    print(f'Spotify Ads Ratio Counter is here by engrbugs {VERSION}')
 
     audio_controller = AudioController(SPOTIFY_APP_EXE)
     # for i in range(start_count_down):
@@ -282,6 +291,14 @@ def main():
     tempx = 10
     textbox_current_window_text = curses.newwin(2, width - (2 * tempx), tempy, tempx)
     #stdscr.addstr(tempy, tempx, 'SPOTIFY window text:', curses.A_BOLD)
+
+    tempy = 7  # row of Spotify Window Text:
+    tempx = 5
+    stdscr.addstr(tempy, tempx, 'Volume:')
+
+    tempy = 7  # row of Volume Textbox:
+    tempx = 13
+    textbox_volume = curses.newwin(2, 3, tempy, tempx)
 
     while True:
         time.sleep(SLEEP_TIME_SONG)
@@ -326,10 +343,13 @@ def main():
         textbox_current_window_text.addstr(title, curses.A_NORMAL)
         textbox_current_window_text.touchwin()
         textbox_current_window_text.refresh()
+        textbox_volume.clear()
+        textbox_volume.addstr(str('%.1f' % volume_now), curses.A_NORMAL if volume_now == 1 else curses.color_pair(7))
+        textbox_volume.touchwin()
+        textbox_volume.refresh()
         stdscr.refresh()
         progress_animation.next()
         progress_animation.refresh()
-
 
 
 def app_initialize():
